@@ -1,35 +1,38 @@
-FROM dockbuild/centos5-devtoolset2-gcc4:latest
+FROM ubuntu:20.04
 MAINTAINER CommonTK Community <ctk-developers@commontk.org>
 # Build and package the CTK AppLauncher
 
 WORKDIR /usr/src
 
-ARG QT_INSTALL_DIR=/usr/src/qt-everywhere-opensource-release-build-4.8.6
+ARG QT_INSTALL_DIR=/usr/src/qt-everywhere-release-build-5.12.10
 
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN \
- yum update -y && \
+ apt update -y && \
  #
  # Qt dependencies: https://doc.qt.io/archives/qt-4.8/requirements-x11.html
  #
- yum install -y \
-   libX11-devel \
-   libXt-devel \
-   libXext-devel \
-   libXrender-devel \
+ apt install -y \
+   libx11-dev \
+   libxt-dev \
+   libxext-dev \
+   libxrender-dev \
+   curl \
+   build-essential \
+   cmake \
  && \
  #
  # Download Qt sources
  #
- QT_ROOT=qt-everywhere-opensource-src-4.8.6 && \
- curl -LO http://packages.kitware.com/download/item/6175/${QT_ROOT}.tar.gz && \
- echo "2edbe4d6c2eff33ef91732602f3518eb  ${QT_ROOT}.tar.gz" > ${QT_ROOT}.tar.gz.md5 && \
- md5sum -c ${QT_ROOT}.tar.gz.md5 && \
- tar -xzvf ${QT_ROOT}.tar.gz && \
- rm -f ${QT_ROOT}.tar.gz && \
- rm -f ${QT_ROOT}.tar.gz.md5 && \
- QT_SRC_DIR=/usr/src/qt-everywhere-opensource-release-src-4.8.6 && \
+ QT_ROOT=qt-everywhere-src-5.12.10 && \
+ curl -LO http://mirror.csclub.uwaterloo.ca/qtproject/archive/qt/5.12/5.12.10/single/${QT_ROOT}.tar.xz && \
+ echo "a781a0e247400e764c0730b8fb54226f  ${QT_ROOT}.tar.xz" > ${QT_ROOT}.tar.xz.md5 && \
+ md5sum -c ${QT_ROOT}.tar.xz.md5 && \
+ tar -xvf ${QT_ROOT}.tar.xz && \
+ rm -f ${QT_ROOT}.tar.xz && \
+ rm -f ${QT_ROOT}.tar.xz.md5 && \
+ QT_SRC_DIR=/usr/src/qt-everywhere-opensource-release-src-5.12.10 && \
  mv ${QT_ROOT} ${QT_SRC_DIR} && \
  #
  # Build Qt
@@ -39,46 +42,41 @@ RUN \
  cd ${QT_SRC_DIR} && \
  LD=${CXX} ./configure \
    -prefix ${QT_INSTALL_DIR} \
-   -confirm-license -opensource \
+   -confirm-license \
+   -opensource \
    -static \
    -release \
-   -no-largefile \
-   -no-exceptions \
    -no-accessibility \
    -no-sql-db2 \
    -no-sql-ibase \
    -no-sql-mysql \
+   -no-opengl \
+   -no-vulkan \
    -no-sql-oci \
    -no-sql-odbc \
    -no-sql-psql \
    -no-sql-sqlite \
    -no-sql-sqlite2 \
-   -no-sql-sqlite_symbian \
    -no-sql-tds \
-   -no-qt3support \
-   -no-xmlpatterns \
-   -no-multimedia \
-   -no-audio-backend \
-   -no-phonon \
-   -no-phonon-backend \
-   -no-svg \
-   -no-webkit \
-   -no-javascript-jit \
-   -no-script \
-   -no-scripttools \
-   -no-declarative \
+   -skip xmlpatterns \
+   -skip multimedia \
+   -skip svg \
+   -skip webengine \
+   -skip script \
+   -skip declarative \
    -no-gif \
-   -no-libtiff \
-   -no-libmng \
+   -no-tiff \
+   -no-mng \
    -no-openssl \
-   -no-nis \
    -no-cups \
    -no-dbus \
    -no-opengl \
    -no-openvg \
-   -nomake demos \
    -nomake examples \
-   -no-gtkstyle && \
+   -nomake tests \
+   -nomake tools \
+   -no-webp \
+   -skip location && \
   make -j$(grep -c processor /proc/cpuinfo) && \
   make install && \
   rm -rf ${QT_SRC_DIR} && \
@@ -92,7 +90,7 @@ RUN \
   #
   # cleanup
   #
-  yum clean all
+  apt clean
 
 # Build-time metadata as defined at http://label-schema.org
 ARG BUILD_DATE
@@ -104,4 +102,3 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.vcs-ref=$VCS_REF \
       org.label-schema.vcs-url=$VCS_URL \
       org.label-schema.schema-version="1.0"
-
